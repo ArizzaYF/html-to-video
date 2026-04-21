@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HTML → VIDEO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Variables ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #080808;
+      --surface:  #0f0f0f;
+      --panel:    #141414;
+      --border:   #1e1e1e;
+      --border2:  #2a2a2a;
+      --amber:    #e8b84b;
+      --amber2:   #f5d06e;
+      --amber-dim:#7a5f20;
+      --red:      #e85050;
+      --green:    #50e880;
+      --text:     #d8d8d8;
+      --muted:    #555;
+      --mono:     'Space Mono', 'Courier New', monospace;
+      --sans:     'DM Sans', system-ui, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    /* ── Film Strip Background ─────────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(
+          90deg,
+          transparent 0px,
+          transparent 28px,
+          rgba(232,184,75,0.015) 28px,
+          rgba(232,184,75,0.015) 29px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout ────────────────────────────────────────────────────────────── */
+    #app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Header ────────────────────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 0 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--amber);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 700;
+      color: #080808;
+      letter-spacing: -1px;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      color: var(--text);
+    }
+
+    .logo-text span {
+      color: var(--amber);
+    }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .status-dot.online  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .status-dot.error   { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+
+    /* ── Main grid ─────────────────────────────────────────────────────────── */
+    main {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 20px;
+      padding: 24px 0;
+      align-items: start;
+    }
+
+    /* ── Left column ───────────────────────────────────────────────────────── */
+    .col-left {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ── Card component ────────────────────────────────────────────────────── */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .card-body { padding: 16px; }
+
+    /* ── Drop Zone ─────────────────────────────────────────────────────────── */
+    #dropzone {
+      border: 1.5px dashed var(--border2);
+      border-radius: 6px;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      text-align: center;
+      user-select: none;
+    }
+
+    #dropzone:hover,
+    #dropzone.dragover {
+      border-color: var(--amber);
+      background: rgba(232,184,75,0.04);
+    }
+
+    #dropzone.has-file {
+      border-style: solid;
+      border-color: var(--amber-dim);
+      background: rgba(232,184,75,0.03);
+    }
+
+    .drop-icon {
+      width: 48px;
+      height: 48px;
+      border: 1.5px solid var(--border2);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .2s;
+    }
+
+    #dropzone:hover .drop-icon,
+    #dropzone.has-file .drop-icon {
+      border-color: var(--amber);
+    }
+
+    .drop-icon svg { width: 22px; height: 22px; }
+
+    .drop-label {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .drop-label strong {
+      display: block;
+      color: var(--text);
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .file-badge {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--amber-dim);
+      border-radius: 4px;
+      padding: 8px 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber);
+    }
+
+    .file-badge.visible { display: flex; }
+
+    .file-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--amber);
+      flex-shrink: 0;
+    }
+
+    #fileInput { display: none; }
+
+    /* ── Progress area ─────────────────────────────────────────────────────── */
+    #progressArea { display: none; }
+    #progressArea.active { display: block; }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .progress-stage { color: var(--amber); }
+    .progress-pct   { color: var(--text); }
+
+    .progress-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--amber-dim), var(--amber));
+      border-radius: 3px;
+      transition: width .4s ease;
+      width: 0%;
+    }
+
+    /* Film perforation ticks on progress track */
+    .progress-track::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 18px,
+        rgba(0,0,0,0.4) 18px,
+        rgba(0,0,0,0.4) 20px
+      );
+    }
+
+    .progress-log {
+      margin-top: 10px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      min-height: 16px;
+    }
+
+    .progress-frames {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .frame-counter { color: var(--text); }
+
+    /* ── Render button ─────────────────────────────────────────────────────── */
+    .btn-render {
+      width: 100%;
+      padding: 14px;
+      background: var(--amber);
+      color: #080808;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: background .15s, opacity .15s, transform .1s;
+      text-transform: uppercase;
+    }
+
+    .btn-render:hover:not(:disabled) {
+      background: var(--amber2);
+      transform: translateY(-1px);
+    }
+
+    .btn-render:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn-render:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-render.processing {
+      background: var(--panel);
+      color: var(--amber);
+      border: 1px solid var(--amber);
+    }
+
+    /* ── Right column: Settings ────────────────────────────────────────────── */
+    .col-right {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: sticky;
+      top: 24px;
+    }
+
+    /* ── Setting group ─────────────────────────────────────────────────────── */
+    .setting-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .setting-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* ── Radio buttons ─────────────────────────────────────────────────────── */
+    .radio-group {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .radio-group label {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      border-right: 1px solid var(--border2);
+      transition: background .15s, color .15s;
+    }
+
+    .radio-group label:last-child { border-right: none; }
+    .radio-group input { display: none; }
+
+    .radio-group input:checked + span {
+      color: var(--amber);
+    }
+
+    .radio-group label:has(input:checked) {
+      background: rgba(232,184,75,0.1);
+      color: var(--amber);
+    }
+
+    /* ── Number input ──────────────────────────────────────────────────────── */
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .input-row input[type="number"] {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 9px 12px;
+      width: 0;
+    }
+
+    .input-row input[type="number"]::-webkit-inner-spin-button,
+    .input-row input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+
+    .input-unit {
+      padding: 9px 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface);
+      border-left: 1px solid var(--border2);
+    }
+
+    /* ── Format selector ───────────────────────────────────────────────────── */
+    .select-styled {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 9px 12px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* ── Spec preview ──────────────────────────────────────────────────────── */
+    .spec-preview {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .spec-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .spec-val { color: var(--amber); }
+
+    /* ── Divider ───────────────────────────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+
+    /* ── Alert / result ────────────────────────────────────────────────────── */
+    .alert {
+      display: none;
+      padding: 12px 14px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      border: 1px solid;
+    }
+
+    .alert.visible { display: block; }
+
+    .alert-success {
+      background: rgba(80,232,128,0.06);
+      border-color: rgba(80,232,128,0.3);
+      color: var(--green);
+    }
+
+    .alert-error {
+      background: rgba(232,80,80,0.06);
+      border-color: rgba(232,80,80,0.3);
+      color: var(--red);
+    }
+
+    /* ── Download button ───────────────────────────────────────────────────── */
+    .btn-download {
+      display: none;
+      width: 100%;
+      margin-top: 8px;
+      padding: 11px;
+      background: transparent;
+      border: 1px solid var(--green);
+      color: var(--green);
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: background .15s;
+      text-decoration: none;
+      text-align: center;
+    }
+
+    .btn-download:hover { background: rgba(80,232,128,0.08); }
+    .btn-download.visible { display: block; }
+
+    /* ── History panel ─────────────────────────────────────────────────────── */
+    footer {
+      padding: 20px 0 32px;
+      border-top: 1px solid var(--border);
+    }
+
+    .history-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      transition: border-color .15s;
+    }
+
+    .history-item:hover { border-color: var(--border2); }
+
+    .history-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--amber);
+      font-family: var(--mono);
+      font-size: 9px;
+    }
+
+    .history-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .history-name {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-meta {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .history-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 3px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      transition: border-color .15s, color .15s;
+      text-decoration: none;
+    }
+
+    .btn-icon:hover { border-color: var(--amber); color: var(--amber); }
+    .btn-icon.delete:hover { border-color: var(--red); color: var(--red); }
+
+    .btn-icon svg { width: 14px; height: 14px; }
+
+    .history-empty {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* ── Spinner ───────────────────────────────────────────────────────────── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 1.5px solid rgba(232,184,75,0.2);
+      border-top-color: var(--amber);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    /* ── Responsive ────────────────────────────────────────────────────────── */
+    @media (max-width: 720px) {
+      main { grid-template-columns: 1fr; }
+      .col-right { position: static; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ────────────────────────────────────────────────────────────── -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">▶</div>
+      <div class="logo-text">HTML <span>→</span> VIDEO</div>
+    </div>
+    <div class="header-status">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Verificando...</span>
+    </div>
+  </header>
+
+  <!-- ── Main ──────────────────────────────────────────────────────────────── -->
+  <main>
+
+    <!-- Left column -->
+    <div class="col-left">
+
+      <!-- Upload card -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">01 / Archivo HTML</span>
+        </div>
+        <div class="card-body">
+          <div id="dropzone">
+            <div class="drop-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
+            </div>
+            <div class="drop-label">
+              <strong>Arrastra tu archivo HTML aquí</strong>
+              o haz clic para seleccionar
+            </div>
+            <div class="file-badge" id="fileBadge">
+              <div class="file-badge-dot"></div>
+              <span id="fileName">archivo.html</span>
+            </div>
+          </div>
+          <input type="file" id="fileInput" accept=".html,text/html" />
+        </div>
+      </div>
+
+      <!-- Progress card -->
+      <div class="card" id="progressArea">
+        <div class="card-header">
+          <span class="card-title">02 / Progreso</span>
+          <span class="card-title" id="progressPct" style="color:var(--amber)">0%</span>
+        </div>
+        <div class="card-body">
+          <div class="progress-header">
+            <span class="progress-stage" id="stageLabel">—</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-frames" id="framesInfo" style="display:none">
+            <span>FRAME</span>
+            <span class="frame-counter" id="frameCounter">0</span>
+            <span>/</span>
+            <span id="frameTotalDisplay">0</span>
+          </div>
+          <div class="progress-log" id="progressLog">—</div>
+
+          <!-- Success / download -->
+          <div class="alert alert-success" id="successAlert"></div>
+          <a class="btn-download" id="downloadBtn" href="#" download>
+            ↓ Descargar video
+          </a>
+
+          <!-- Error -->
+          <div class="alert alert-error" id="errorAlert"></div>
+        </div>
+      </div>
+
+      <!-- Render button -->
+      <button class="btn-render" id="renderBtn" disabled>
+        Renderizar animación
+      </button>
+
+    </div>
+
+    <!-- Right column: settings -->
+    <div class="col-right">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Configuración</span>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+
+          <!-- Resolution -->
+          <div class="setting-group">
+            <div class="setting-label">Resolución</div>
+            <div class="radio-group">
+              <label>
+                <input type="radio" name="resolution" value="1080p" checked />
+                <span>1080p</span>
+              </label>
+              <label>
+                <input type="radio" name="resolution" value="2K" />
+                <span>2K</span>
+              </label>
+              <label>
+                <input type="radio" name="resolution" value="4K" />
+                <span>4K</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- FPS -->
+          <div class="setting-group">
+            <div class="setting-label">Frame Rate</div>
+            <div class="radio-group">
+              <label>
+                <input type="radio" name="fps" value="24" />
+                <span>24 fps</span>
+              </label>
+              <label>
+                <input type="radio" name="fps" value="30" checked />
+                <span>30 fps</span>
+              </label>
+              <label>
+                <input type="radio" name="fps" value="60" />
+                <span>60 fps</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Duration -->
+          <div class="setting-group">
+            <div class="setting-label">Duración</div>
+            <div class="input-row">
+              <input type="number" id="duration" value="5" min="0.5" max="300" step="0.5" />
+              <div class="input-unit">seg</div>
+            </div>
+          </div>
+
+          <!-- Format -->
+          <div class="setting-group">
+            <div class="setting-label">Formato de salida</div>
+            <select class="select-styled" id="format">
+              <option value="mp4">MP4 (H.264) — Recomendado</option>
+              <option value="webm">WebM (VP9)</option>
+            </select>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Spec preview -->
+          <div class="spec-preview" id="specPreview">
+            <div class="spec-row"><span>Resolución</span><span class="spec-val" id="specRes">1920 × 1080</span></div>
+            <div class="spec-row"><span>Frame rate</span><span class="spec-val" id="specFps">30 fps</span></div>
+            <div class="spec-row"><span>Duración</span><span class="spec-val" id="specDur">5.0 s</span></div>
+            <div class="spec-row"><span>Total frames</span><span class="spec-val" id="specFrames">150</span></div>
+            <div class="spec-row"><span>Formato</span><span class="spec-val" id="specFmt">MP4</span></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Footer: render history ──────────────────────────────────────────── -->
+  <footer>
+    <div class="history-title">Renders anteriores</div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty" id="historyEmpty">No hay renders todavía.</div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let selectedFile  = null;
+  let isRendering   = false;
+  let currentJobId  = null;
+  let eventSource   = null;
+  let totalFrames   = 0;
+
+  // ── DOM refs ───────────────────────────────────────────────────────────────
+  const dropzone    = document.getElementById('dropzone');
+  const fileInput   = document.getElementById('fileInput');
+  const fileBadge   = document.getElementById('fileBadge');
+  const fileName    = document.getElementById('fileName');
+  const renderBtn   = document.getElementById('renderBtn');
+  const progressArea   = document.getElementById('progressArea');
+  const progressFill   = document.getElementById('progressFill');
+  const progressPct    = document.getElementById('progressPct');
+  const progressLog    = document.getElementById('progressLog');
+  const stageLabel     = document.getElementById('stageLabel');
+  const framesInfo     = document.getElementById('framesInfo');
+  const frameCounter   = document.getElementById('frameCounter');
+  const frameTotalDisp = document.getElementById('frameTotalDisplay');
+  const successAlert   = document.getElementById('successAlert');
+  const errorAlert     = document.getElementById('errorAlert');
+  const downloadBtn    = document.getElementById('downloadBtn');
+  const historyList    = document.getElementById('historyList');
+  const historyEmpty   = document.getElementById('historyEmpty');
+  const statusDot      = document.getElementById('statusDot');
+  const statusText     = document.getElementById('statusText');
+
+  // Spec preview refs
+  const specRes    = document.getElementById('specRes');
+  const specFps    = document.getElementById('specFps');
+  const specDur    = document.getElementById('specDur');
+  const specFrames = document.getElementById('specFrames');
+  const specFmt    = document.getElementById('specFmt');
+
+  // ── Resolution map ─────────────────────────────────────────────────────────
+  const RES_LABELS = {
+    '1080p': '1920 × 1080',
+    '2K':    '2560 × 1440',
+    '4K':    '3840 × 2160',
+  };
+
+  // ── Utility ────────────────────────────────────────────────────────────────
+  function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+    return (b / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  function getSettings() {
+    const resolution = document.querySelector('input[name="resolution"]:checked').value;
+    const fps        = parseInt(document.querySelector('input[name="fps"]:checked').value);
+    const duration   = parseFloat(document.getElementById('duration').value) || 5;
+    const format     = document.getElementById('format').value;
+    return { resolution, fps, duration, format };
+  }
+
+  // ── Spec preview updater ───────────────────────────────────────────────────
+  function updateSpecPreview() {
+    const { resolution, fps, duration, format } = getSettings();
+    specRes.textContent    = RES_LABELS[resolution] || resolution;
+    specFps.textContent    = fps + ' fps';
+    specDur.textContent    = duration.toFixed(1) + ' s';
+    specFrames.textContent = Math.ceil(fps * duration);
+    specFmt.textContent    = format.toUpperCase();
+  }
+
+  document.querySelectorAll('input[name="resolution"], input[name="fps"]')
+    .forEach(el => el.addEventListener('change', updateSpecPreview));
+  document.getElementById('duration').addEventListener('input', updateSpecPreview);
+  document.getElementById('format').addEventListener('change', updateSpecPreview);
+  updateSpecPreview();
+
+  // ── System info check ──────────────────────────────────────────────────────
+  async function checkSystem() {
+    try {
+      const r = await fetch('/api/info');
+      const info = await r.json();
+      if (info.ffmpegAvailable) {
+        statusDot.className  = 'status-dot online';
+        statusText.textContent = 'Sistema listo';
+      } else {
+        statusDot.className  = 'status-dot error';
+        statusText.textContent = 'FFmpeg no encontrado';
+      }
+    } catch {
+      statusDot.className  = 'status-dot error';
+      statusText.textContent = 'Servidor no disponible';
+    }
+  }
+  checkSystem();
+
+  // ── File handling ──────────────────────────────────────────────────────────
+  function handleFile(file) {
+    if (!file || !file.name.endsWith('.html')) {
+      showError('Solo se aceptan archivos .html');
+      return;
+    }
+    selectedFile = file;
+    fileName.textContent = file.name;
+    fileBadge.classList.add('visible');
+    dropzone.classList.add('has-file');
+    renderBtn.disabled = false;
+    clearResult();
+  }
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+  });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    handleFile(e.dataTransfer.files[0]);
+  });
+
+  // ── Progress helpers ───────────────────────────────────────────────────────
+  function setProgress(pct, stage, log) {
+    progressFill.style.width = pct + '%';
+    progressPct.textContent  = pct + '%';
+    if (stage) stageLabel.textContent = stage;
+    if (log)   progressLog.textContent = log;
+  }
+
+  function showSuccess(url, name, size) {
+    successAlert.textContent = `✓ ${name} (${formatBytes(size)})`;
+    successAlert.classList.add('visible');
+    downloadBtn.href = url;
+    downloadBtn.setAttribute('download', name);
+    downloadBtn.classList.add('visible');
+    loadHistory();
+  }
+
+  function showError(msg) {
+    errorAlert.textContent = '✗ ' + msg;
+    errorAlert.classList.add('visible');
+  }
+
+  function clearResult() {
+    successAlert.classList.remove('visible');
+    errorAlert.classList.remove('visible');
+    downloadBtn.classList.remove('visible');
+    progressArea.classList.remove('active');
+    progressFill.style.width = '0%';
+    framesInfo.style.display = 'none';
+  }
+
+  // ── SSE listener ───────────────────────────────────────────────────────────
+  function subscribeToJob(jobId) {
+    if (eventSource) eventSource.close();
+
+    eventSource = new EventSource(`/api/progress/${jobId}`);
+
+    const STAGE_LABELS = {
+      init:    '⬡ Inicializando',
+      capture: '⬢ Capturando frames',
+      encode:  '⬡ Codificando video',
+      done:    '✓ Completado',
+      error:   '✗ Error',
+      log:     '',
+    };
+
+    eventSource.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+
+      if (data.stage === 'log') {
+        progressLog.textContent = data.message;
+        return;
+      }
+
+      if (data.stage === 'capture') {
+        framesInfo.style.display = 'flex';
+        frameCounter.textContent = data.frame || 0;
+        frameTotalDisp.textContent = data.total || totalFrames;
+      }
+
+      setProgress(
+        data.progress || 0,
+        STAGE_LABELS[data.stage] || data.stage,
+        data.message
+      );
+
+      if (data.stage === 'done') {
+        isRendering = false;
+        renderBtn.disabled   = false;
+        renderBtn.classList.remove('processing');
+        renderBtn.textContent = 'Renderizar animación';
+        showSuccess(data.downloadUrl, data.fileName, data.fileSize);
+        eventSource.close();
+      }
+
+      if (data.stage === 'error') {
+        isRendering = false;
+        renderBtn.disabled   = false;
+        renderBtn.classList.remove('processing');
+        renderBtn.textContent = 'Renderizar animación';
+        showError(data.message);
+        eventSource.close();
+      }
+    };
+
+    eventSource.onerror = () => {
+      // SSE closed after job done — that's normal
+    };
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  renderBtn.addEventListener('click', async () => {
+    if (!selectedFile || isRendering) return;
+
+    isRendering = true;
+    clearResult();
+    progressArea.classList.add('active');
+    renderBtn.disabled   = true;
+    renderBtn.classList.add('processing');
+    renderBtn.innerHTML  = '<span class="spinner"></span>Procesando...';
+
+    const { resolution, fps, duration, format } = getSettings();
+    totalFrames = Math.ceil(fps * duration);
+
+    const formData = new FormData();
+    formData.append('html',       selectedFile);
+    formData.append('resolution', resolution);
+    formData.append('fps',        fps);
+    formData.append('duration',   duration);
+    formData.append('format',     format);
+
+    setProgress(0, '⬡ Enviando archivo...', 'Preparando job...');
+
+    try {
+      const res  = await fetch('/api/render', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Error del servidor');
+      }
+
+      currentJobId = data.jobId;
+      totalFrames  = data.totalFrames || totalFrames;
+      subscribeToJob(currentJobId);
+
+    } catch (err) {
+      isRendering = false;
+      renderBtn.disabled   = false;
+      renderBtn.classList.remove('processing');
+      renderBtn.textContent = 'Renderizar animación';
+      showError(err.message);
+    }
+  });
+
+  // ── History ────────────────────────────────────────────────────────────────
+  async function loadHistory() {
+    try {
+      const res   = await fetch('/api/outputs');
+      const files = await res.json();
+
+      if (!files.length) {
+        historyEmpty.style.display = 'block';
+        return;
+      }
+
+      historyEmpty.style.display = 'none';
+
+      // Keep existing items that are still there, add new ones
+      const existingNames = new Set(
+        [...historyList.querySelectorAll('.history-item')].map(el => el.dataset.name)
+      );
+
+      files.forEach((f) => {
+        if (existingNames.has(f.name)) return;
+
+        const item = document.createElement('div');
+        item.className  = 'history-item';
+        item.dataset.name = f.name;
+
+        const date = new Date(f.created).toLocaleString('es-CO', {
+          day: '2-digit', month: '2-digit', year: '2-digit',
+          hour: '2-digit', minute: '2-digit'
+        });
+
+        item.innerHTML = `
+          <div class="history-icon">MP4</div>
+          <div class="history-info">
+            <div class="history-name">${f.name}</div>
+            <div class="history-meta">${formatBytes(f.size)} · ${date}</div>
+          </div>
+          <div class="history-actions">
+            <a class="btn-icon" href="${f.url}" download="${f.name}" title="Descargar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </a>
+            <button class="btn-icon delete" title="Eliminar" data-name="${f.name}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6"/>
+              </svg>
+            </button>
+          </div>
+        `;
+
+        // Delete handler
+        item.querySelector('.delete').addEventListener('click', async () => {
+          if (!confirm(`¿Eliminar ${f.name}?`)) return;
+          await fetch(`/api/output/${f.name}`, { method: 'DELETE' });
+          item.remove();
+          if (!historyList.querySelector('.history-item')) {
+            historyEmpty.style.display = 'block';
+          }
+        });
+
+        historyList.insertBefore(item, historyEmpty);
+      });
+    } catch (e) {
+      console.warn('History load failed:', e.message);
+    }
+  }
+
+  loadHistory();
+</script>
+</body>
+</html>
