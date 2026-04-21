@@ -90,14 +90,3 @@ html-to-video/
 | GET    | `/api/outputs`        | Lista videos generados             |
 | DELETE | `/api/output/:file`   | Elimina un video                   |
 | GET    | `/api/info`           | Estado del sistema                 |
-
-## Consejos para animaciones HTML
-
-- Usa `animation-iteration-count: infinite` para loops
-- La app pausa y reinicia las animaciones antes de capturar
-- Assets externos (fuentes, imágenes) deben estar inline o en base64
-- La app bloquea el acceso a internet durante la captura
-
-## Licencia
-
-MIT
